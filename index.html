@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>بازی دفاع فضایی</title>
+    <style>
+        body { margin: 0; display: flex; flex-direction: column; align-items: center; background: linear-gradient(45deg, #ff007f, #00d2ff, #7f00ff); background-size: 300% 300%; animation: gradientBG 8s ease infinite; color: white; font-family: Tahoma, sans-serif; min-height: 100vh; overflow-x: hidden; }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        
+        .info-bar { width: 100%; display: flex; align-items: center; justify-content: center; padding: 10px; background-color: rgba(0, 0, 0, 0.4); font-size: 0.85rem; position: relative; }
+        #settingsBtn { position: absolute; left: 15px; cursor: pointer; font-size: 20px; }
+        #versionTag { position: absolute; right: 15px; color: #ccc; font-size: 0.75rem; }
+        
+        .channel-link { color: #00d2ff; cursor: pointer; text-decoration: underline; user-select: none; }
+        
+        #settingsMenu { display: none; position: absolute; top: 50px; left: 10px; background: rgba(0,0,0,0.9); padding: 15px; border-radius: 8px; border: 1px solid white; z-index: 20; }
+        
+        .game-container { margin-top: 40px; display: flex; flex-direction: column; align-items: center; }
+        
+        /* استایل جدید برای عنوان و آیکون */
+        .header-wrapper { display: flex; align-items: center; gap: 10px; margin-bottom: 15px; }
+        .game-icon { width: 35px; height: 35px; border-radius: 5px; }
+        .game-title { font-size: 1.5rem; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        
+        #gameCanvas { background: rgba(0, 0, 0, 0.5); border: 2px solid #fff; border-radius: 10px; touch-action: none; }
+        .controls { display: flex; gap: 10px; margin-top: 15px; }
+        .btn { padding: 15px 25px; background: rgba(255, 255, 255, 0.2); border: 2px solid white; border-radius: 12px; cursor: pointer; font-size: 20px; user-select: none; }
+    </style>
+</head>
+<body>
+
+    <div class="info-bar">
+        <div id="settingsBtn">⚙️</div>
+        <span>کانال: <span class="channel-link" onclick="copyChannel()">@bdfgame</span></span>
+        <div id="versionTag">v 1.1</div>
+    </div>
+
+    <div id="settingsMenu">
+        <div>تنظیم سرعت:</div>
+        <select id="speedSelect">
+            <option value="1">x1</option>
+            <option value="2">x2</option>
+            <option value="3">x3</option>
+        </select>
+    </div>
+
+    <div class="game-container">
+        <!-- اضافه شدن آیکون در کنار متن -->
+        <div class="header-wrapper">
+            <img src="Bdf game arm.png" alt="Icon" class="game-icon">
+            <div class="game-title">بازی دفاع فضایی</div>
+        </div>
+        
+        <canvas id="gameCanvas" width="300" height="300"></canvas>
+        <button id="startBtn" class="btn" style="width: 280px; margin-top: 10px;">شروع بازی</button>
+        <div class="controls">
+            <div class="btn" id="leftBtn">◀️</div>
+            <div class="btn" id="shootBtn">🚀</div>
+            <div class="btn" id="rightBtn">▶️</div>
+        </div>
+    </div>
+
+    <script>
+        function copyChannel() {
+            const textToCopy = "@bdfgame";
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                alert("کانال کپی شد: " + textToCopy);
+            }).catch(err => { console.error('خطا در کپی کردن: ', err); });
+        }
+
+        const canvas = document.getElementById("gameCanvas"), ctx = canvas.getContext("2d");
+        let playerX = 130, gameRunning = false, score = 0, speed = 1;
+        let enemies = [{x: 100, y: 0}], projectiles = [], keys = {};
+
+        function shoot() { if(gameRunning) projectiles.push({x: playerX + 17, y: 270}); }
+
+        document.getElementById("settingsBtn").onclick = () => {
+            const m = document.getElementById("settingsMenu");
+            m.style.display = (m.style.display === "block") ? "none" : "block";
+        };
+        document.getElementById("speedSelect").onchange = (e) => speed = parseFloat(e.target.value);
+
+        window.addEventListener("keydown", e => { keys[e.code] = true; if (e.code === "Space") shoot(); });
+        window.addEventListener("keyup", e => keys[e.code] = false);
+        
+        document.getElementById("leftBtn").onpointerdown = () => keys["ArrowLeft"] = true;
+        document.getElementById("leftBtn").onpointerup = () => keys["ArrowLeft"] = false;
+        document.getElementById("rightBtn").onpointerdown = () => keys["ArrowRight"] = true;
+        document.getElementById("rightBtn").onpointerup = () => keys["ArrowRight"] = false;
+        document.getElementById("shootBtn").onclick = shoot;
+
+        function update() {
+            if (!gameRunning) return;
+            ctx.clearRect(0, 0, 300, 300);
+
+            ctx.fillStyle = "white";
+            ctx.font = "bold 18px Arial";
+            ctx.fillText("امتیاز: " + score, 10, 25);
+
+            if (keys["ArrowLeft"] && playerX > 0) playerX -= 5;
+            if (keys["ArrowRight"] && playerX < 260) playerX += 5;
+
+            enemies.forEach((e) => {
+                e.y += (2 * speed);
+                if (e.y > 270 && Math.abs(e.x - playerX) < 30) {
+                    gameRunning = false;
+                    alert("بازی تمام شد! امتیاز شما: " + score);
+                    location.reload();
+                }
+                if (e.y > 300) { e.y = 0; e.x = Math.random() * 260; }
+                ctx.fillStyle = "red"; ctx.fillRect(e.x, e.y, 20, 20);
+            });
+
+            projectiles.forEach((p, i) => {
+                p.y -= 7;
+                ctx.fillStyle = "yellow"; ctx.fillRect(p.x, p.y, 5, 10);
+                
+                enemies.forEach((e) => {
+                    if (p.x > e.x && p.x < e.x + 20 && p.y > e.y && p.y < e.y + 20) {
+                        projectiles.splice(i, 1);
+                        e.y = 0; e.x = Math.random() * 260;
+                        score++;
+                    }
+                });
+
+                if (p.y < 0) projectiles.splice(i, 1);
+            });
+
+            ctx.fillStyle = "#00d2ff"; ctx.fillRect(playerX, 280, 40, 10);
+            requestAnimationFrame(update);
+        }
+
+        document.getElementById("startBtn").onclick = (e) => { e.target.style.display = "none"; gameRunning = true; update(); };
+    </script>
+</body>
+</html>
